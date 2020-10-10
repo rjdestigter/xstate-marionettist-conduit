@@ -20,6 +20,6 @@
     "ts-jest": "^26.4.1",
     "typescript": "^4.0.3",
     "xstate": "^4.13.0",
-    "xstate-marionettist": "^0.4.0"
+    "xstate-marionettist": "^0.5.1"
   }
 }
