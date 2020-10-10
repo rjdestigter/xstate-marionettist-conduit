@@ -1,0 +1,25 @@
+{
+  "name": "xstate-marionettist-conduit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "cross-env DEBUG=e2e* jest --runInBand -c jest.config.js",
+    "test:ci": "cross-env DEBUG=e2e* CI=true jest --runInBand -c jest.config.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@xstate/test": "^0.4.1",
+    "cross-env": "^7.0.2",
+    "jasmine-fail-fast": "^2.0.1",
+    "jest": "^26.5.2",
+    "jest-puppeteer": "^4.4.0",
+    "puppeteer": "^5.3.1",
+    "ts-jest": "^26.4.1",
+    "typescript": "^4.0.3",
+    "xstate": "^4.13.0",
+    "xstate-marionettist": "^0.4.0"
+  }
+}
