@@ -1,6 +1,8 @@
-import { make, Configuration } from "xstate-marionettist/dist/test";
+import debug from "debug";
+import { makePlay, Configuration } from "xstate-marionettist";
+import { Page, ChromiumBrowserContext } from "playwright";
 
-const test = make({
+const test = makePlay({
   selectorWrapper: (_) => _,
   ports: {
     prod: 80,
@@ -9,6 +11,38 @@ const test = make({
   },
   server: "http://realworld.svelte.dev",
 });
+
+declare const context: ChromiumBrowserContext;
+
+const find = (data: any) => {
+  debug("e2e")("page");
+
+  if (data) {
+    if (data.send) {
+      debug("e2e")("send");
+
+      return [];
+    }
+
+    return Object.keys(data)
+      .map((key) => {
+        debug("e2e")(key);
+
+        if (data[key]) {
+          const result = find(data[key]);
+
+          if (result.length > 0) {
+            return [key, ...result];
+          }
+        }
+
+        return [];
+      })
+      .filter((_) => _.length > 0);
+  }
+
+  return [];
+};
 
 const config: Configuration = {
   id: "conduit",
@@ -132,9 +166,6 @@ const config: Configuration = {
     height: 1080,
   },
   beforVisit: [
-    (page) =>
-      // @ts-ignore
-      page._client.send("Network.setBypassServiceWorker", { bypass: true }),
     ["defer", "tags"],
     ["defer", "articles"],
   ],
@@ -261,9 +292,14 @@ const config: Configuration = {
             ["type", 'input[placeholder="Your Name"]', "Jane Doe"],
             ["type", 'input[type="email"]', "jane@doe.com"],
             ["type", 'input[type="password"]', "abc123"],
-            ["expectProperty", 'input[placeholder="Your Name"]', 'value', "Jane Doe"],
-            ["expectProperty", 'input[type="email"]', 'value', "jane@doe.com"],
-            ["expectProperty", 'input[type="password"]', 'value', "abc123"],
+            [
+              "expectProperty",
+              'input[placeholder="Your Name"]',
+              "value",
+              "Jane Doe",
+            ],
+            ["expectProperty", 'input[type="email"]', "value", "jane@doe.com"],
+            ["expectProperty", 'input[type="password"]', "value", "abc123"],
             ["defer", "register"],
             ["click", "button"],
           ],
@@ -292,9 +328,19 @@ const config: Configuration = {
         ["waitForSelector", "ul.error-messages"],
         ["waitForSelector", "ul.error-messages>li:nth-child(1)"],
         ["waitForSelector", "ul.error-messages>li:nth-child(2)"],
-        ["expectProperty", "ul.error-messages>li:nth-child(1)", "textContent", "email has already been taken"],
-        ["expectProperty", "ul.error-messages>li:nth-child(2)", "textContent", "username has already been taken"]
-      ]
+        [
+          "expectProperty",
+          "ul.error-messages>li:nth-child(1)",
+          "textContent",
+          "email has already been taken",
+        ],
+        [
+          "expectProperty",
+          "ul.error-messages>li:nth-child(2)",
+          "textContent",
+          "username has already been taken",
+        ],
+      ],
     },
 
     // State for testing the sign-in workflow
