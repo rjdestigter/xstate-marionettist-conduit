@@ -1,12 +1,13 @@
 module.exports = {
-  preset: "jest-puppeteer",
+  preset: "jest-playwright-preset",
   bail: 1,
-  testRegex: "./*\\.e2e\\.ts?$",
+  testRegex: "./*\\.playwright\\.ts?$",
   transform: {
     "^.+\\.tsx?$": "ts-jest",
   },
   moduleNameMapper: {
     "^.+\\.module\\.(css|sass|scss)$": "identity-obj-proxy",
   },
-  setupFilesAfterEnv: ["./jest-e2e-setup.js", "expect-puppeteer"],
+  extraGlobals: [],
+  // setupFilesAfterEnv: ["./jest-e2e-setup.js"],
 };
