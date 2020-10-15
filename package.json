@@ -32,6 +32,6 @@
     "xstate-marionettist": "0.7.0",
     "xstate-marionettist-cypress": "0.1.0",
     "xstate-marionettist-playwright": "0.1.0",
-    "xstate-marionettist-puppeteer": "0.1.0"
+    "xstate-marionettist-puppeteer": "^0.1.2"
   }
 }
