@@ -1,58 +1,13 @@
-import debug from "debug";
-import { Configuration } from "xstate-marionettist";
-import { create } from "xstate-marionettist-playwright";
-import { Page, ChromiumBrowserContext } from "playwright";
+import test from "../../test";
 
-const test = create({
-  selectorWrapper: (_) => _,
-  ports: {
-    prod: 80,
-    ci: 80,
-    dev: 80,
-  },
-  server: "http://realworld.svelte.dev",
-});
-
-declare const context: ChromiumBrowserContext;
-
-const find = (data: any) => {
-  debug("e2e")("page");
-
-  if (data) {
-    if (data.send) {
-      debug("e2e")("send");
-
-      return [];
-    }
-
-    return Object.keys(data)
-      .map((key) => {
-        debug("e2e")(key);
-
-        if (data[key]) {
-          const result = find(data[key]);
-
-          if (result.length > 0) {
-            return [key, ...result];
-          }
-        }
-
-        return [];
-      })
-      .filter((_) => _.length > 0);
-  }
-
-  return [];
-};
-
-const config: Configuration<Page> = {
+const configuration = {
   id: "conduit",
   visit: {
     path: "/",
   },
   apis: [
     {
-      path: "/auth/login",
+      path: ".*/api/users/login$",
       deferrals: ["login"],
       outcomes: {
         "*": {
@@ -72,35 +27,56 @@ const config: Configuration<Page> = {
       },
     },
     {
-      path: "/auth/register",
-      deferrals: ["register"],
+      path: ".*/api/user/$",
+      deferrals: ["user"],
       outcomes: {
-        BAD_SIGNUP: {
-          body: {
-            errors: {
-              email: ["has already been taken"],
-              username: ["has already been taken"],
-            },
-          },
-        },
-        OK_SIGNUP: {
+        "*": {
           body: {
             user: {
-              id: 118518,
+              id: 119095,
               email: "jane@doe.com",
-              createdAt: "2020-10-10T15:35:38.195Z",
-              updatedAt: "2020-10-10T15:35:38.204Z",
+              createdAt: "2020-10-15T17:28:23.804Z",
+              updatedAt: "2020-10-15T17:28:23.912Z",
               username: "jane.doe",
               bio: null,
               image: null,
-              token: "abc_token",
+              token: "abc123",
             },
           },
         },
       },
     },
     {
-      path: "/api/tags",
+      path: ".*/api/users$",
+      deferrals: ["register"],
+      outcomes: {
+        BAD_SIGNUP: {
+          status: 400,
+          body: {
+            errors: {
+              email: ["is invalid"],
+              password: ["is too short"],
+            },
+          },
+        },
+        OK_SIGNUP: {
+          body: {
+            user: {
+              id: 119095,
+              email: "jane@doe.com",
+              createdAt: "2020-10-15T17:28:23.804Z",
+              updatedAt: "2020-10-15T17:28:23.912Z",
+              username: "jane.doe",
+              bio: null,
+              image: null,
+              token: "abc123",
+            },
+          },
+        },
+      },
+    },
+    {
+      path: ".*/api/tags/$",
       deferrals: ["tags"],
       outcomes: {
         "*": {
@@ -111,7 +87,7 @@ const config: Configuration<Page> = {
       },
     },
     {
-      path: "/api/articles",
+      path: ".*/api/articles?.*",
       deferrals: ["articles"],
       outcomes: {
         "*": {
@@ -167,6 +143,11 @@ const config: Configuration<Page> = {
     height: 1080,
   },
   beforeVisit: [
+    (cy) => cy.log("Start"),
+    (cy) =>
+      cy.window().then((win) => {
+        win.navigator.serviceWorker.register = () => new Promise(() => void 0);
+      }),
     ["defer", "tags"],
     ["defer", "articles"],
   ],
@@ -175,10 +156,15 @@ const config: Configuration<Page> = {
     // Initial home page, articles and tags haven't downloaded yet
     anonymous: {
       tests: [
-        ["waitForSelector", "#sapper"],
+        ["waitForSelector", "#app"],
         ["waitForSelector", ".home-page"],
         ["waitForSelector", ".container.page"],
-        ["expectProperty", ".article-preview", "textContent", "Loading..."],
+        [
+          "expectProperty",
+          ".article-preview",
+          "textContent",
+          "Loading articles...",
+        ],
       ],
       on: {
         DOWNLOADED_TAGS: {
@@ -194,7 +180,7 @@ const config: Configuration<Page> = {
           actions: [
             ["resolve", "tags"],
             ["resolve", "articles"],
-            ["click", '[href="/login"]'],
+            ["click", '[href="#/login"]'],
           ],
         },
         SIGNUP: {
@@ -202,7 +188,7 @@ const config: Configuration<Page> = {
           actions: [
             ["resolve", "tags"],
             ["resolve", "articles"],
-            ["click", '[href="/register"]'],
+            ["click", '[href="#/register"]'],
           ],
         },
       },
@@ -211,10 +197,15 @@ const config: Configuration<Page> = {
     // State for post-signup or post-login
     authenticated: {
       tests: [
-        ["waitForSelector", "#sapper"],
+        ["waitForSelector", "#app"],
         ["waitForSelector", ".home-page"],
         ["waitForSelector", ".container.page"],
-        ["expectProperty", ".article-preview", "textContent", "Loading..."],
+        [
+          "expectProperty",
+          ".article-preview",
+          "textContent",
+          "Loading articles...",
+        ],
       ],
       on: {
         DOWNLOADED_TAGS: {
@@ -232,7 +223,12 @@ const config: Configuration<Page> = {
     withTags: {
       tests: [
         ["waitForSelector", ".tag-default.tag-pill"],
-        ["expectProperty", ".article-preview", "textContent", "Loading..."],
+        [
+          "expectProperty",
+          ".article-preview",
+          "textContent",
+          "Loading articles...",
+        ],
       ],
       on: {
         DOWNLOADED_ARTICLES: {
@@ -246,6 +242,10 @@ const config: Configuration<Page> = {
     withArticles: {
       tests: [
         ["waitForSelector", ".article-preview"],
+        (cy) =>
+          cy.get(".article-preview:nth-child(1) h1", {
+            timeout: 10000,
+          }),
         ["waitForSelector", ".article-preview:nth-child(1) h1"],
         ["waitForSelector", ".article-preview:nth-child(2) h1"],
         [
@@ -281,8 +281,8 @@ const config: Configuration<Page> = {
     signUp: {
       tests: [
         ["expectProperty", ".auth-page h1", "textContent", "Sign up"],
-        ["waitForSelector", 'input[placeholder="Your Name"]'],
-        ["waitForSelector", 'input[type="email"]'],
+        ["waitForSelector", 'input[placeholder="Username"]'],
+        ["waitForSelector", 'input[placeholder="Email"]'],
         ["waitForSelector", 'input[type="password"]'],
         ["waitForSelector", "button"],
       ],
@@ -290,16 +290,21 @@ const config: Configuration<Page> = {
         REGISTER: {
           target: "signingUp",
           actions: [
-            ["type", 'input[placeholder="Your Name"]', "Jane Doe"],
-            ["type", 'input[type="email"]', "jane@doe.com"],
+            ["type", 'input[placeholder="Username"]', "Jane Doe"],
+            ["type", 'input[placeholder="Email"]', "jane@doe.com"],
             ["type", 'input[type="password"]', "abc123"],
             [
               "expectProperty",
-              'input[placeholder="Your Name"]',
+              'input[placeholder="Username"]',
               "value",
               "Jane Doe",
             ],
-            ["expectProperty", 'input[type="email"]', "value", "jane@doe.com"],
+            [
+              "expectProperty",
+              'input[placeholder="Email"]',
+              "value",
+              "jane@doe.com",
+            ],
             ["expectProperty", 'input[type="password"]', "value", "abc123"],
             ["defer", "register"],
             ["click", "button"],
@@ -333,13 +338,13 @@ const config: Configuration<Page> = {
           "expectProperty",
           "ul.error-messages>li:nth-child(1)",
           "textContent",
-          "email has already been taken",
+          "email is invalid",
         ],
         [
           "expectProperty",
           "ul.error-messages>li:nth-child(2)",
           "textContent",
-          "username has already been taken",
+          "password is too short",
         ],
       ],
     },
@@ -350,17 +355,20 @@ const config: Configuration<Page> = {
         LOGIN: {
           target: "authenticating",
           actions: [
-            ["type", 'input[type="email"]', "jane@doe.com"],
+            ["type", 'input[placeholder="Email"]', "jane@doe.com"],
             ["type", 'input[type="password"]', "abc123"],
             ["defer", "login"],
-            ["click", 'button[type="submit"]'],
+            ["click", 'button[class="btn btn-lg btn-primary pull-xs-right"]'],
           ],
         },
       },
       tests: [
-        ["waitForSelector", 'input[type="email"]'],
+        ["waitForSelector", 'input[placeholder="Email"]'],
         ["waitForSelector", 'input[type="password"]'],
-        ["waitForSelector", 'button[type="submit"]'],
+        [
+          "waitForSelector",
+          'button[class="btn btn-lg btn-primary pull-xs-right"]',
+        ],
       ],
     },
     authenticating: {
@@ -369,7 +377,7 @@ const config: Configuration<Page> = {
         ["defer", "articles"],
         ["defer", "tags"],
         ["resolve", "login"],
-        ["waitForSelector", '[href="/profile/@jane.doe"]'],
+        ["waitForSelector", '[href="#/@jane.doe/"]'],
       ],
       on: {
         AUTHENTICATED: {
@@ -380,4 +388,4 @@ const config: Configuration<Page> = {
   },
 };
 
-test(config);
+test(configuration);

@@ -1,6 +1,6 @@
-import { make, Configuration } from "xstate-marionettist";
+import { create } from "xstate-marionettist-puppeteer";
 
-const test = make({
+const test = create({
   selectorWrapper: (_) => _,
   ports: {
     prod: 80,
@@ -10,7 +10,7 @@ const test = make({
   server: "http://realworld.svelte.dev",
 });
 
-const config: Configuration = {
+const config = {
   id: "conduit",
   visit: {
     path: "/",
@@ -131,7 +131,7 @@ const config: Configuration = {
     width: 1920,
     height: 1080,
   },
-  beforVisit: [
+  beforeVisit: [
     (page) =>
       // @ts-ignore
       page._client.send("Network.setBypassServiceWorker", { bypass: true }),
